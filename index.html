@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#E7ECEF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F161D" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Language Split">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%231F5FA8'/%3E%3Crect x='12' y='16' width='40' height='32' rx='3' fill='%23FDFEFE'/%3E%3Crect x='12' y='24' width='40' height='2' fill='%23D8574C'/%3E%3Crect x='18' y='32' width='28' height='2' fill='%23C3D8EC'/%3E%3Crect x='18' y='39' width='28' height='2' fill='%23C3D8EC'/%3E%3C/svg%3E">
+<title>Language Split</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a Leitner card box. The index card is the hero, a stat rail sits beside it, decks and the plan run below. */
+:root{
+  color-scheme:light;
+  --ground:#E7ECEF; --surface:#F6F8FA; --card:#FDFEFE;
+  --ink:#15202B; --ink-2:#465564; --ink-3:#6E7C89;
+  --line:#CAD4DB; --rule:#C3D8EC; --rule-red:#D8574C;
+  --accent:#1F5FA8; --accent-ink:#FFFFFF; --accent-soft:#DCE8F5;
+  --good:#1F6E44; --good-bg:#DBEEE2; --miss:#AE3227; --miss-bg:#F6DFDC;
+  --display:"Barlow Condensed","Hiragino Sans","Yu Gothic","Noto Sans JP","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans","Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F161D; --surface:#17212B; --card:#1E2A36;
+    --ink:#E4EBF1; --ink-2:#A9B6C2; --ink-3:#8292A0;
+    --line:#2D3B49; --rule:#2A3F56; --rule-red:#B9534A;
+    --accent:#7DB3EE; --accent-ink:#0B1622; --accent-soft:#1D3248;
+    --good:#62C48E; --good-bg:#16332A; --miss:#F0867C; --miss-bg:#3A1F1D;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F161D; --surface:#17212B; --card:#1E2A36;
+  --ink:#E4EBF1; --ink-2:#A9B6C2; --ink-3:#8292A0;
+  --line:#2D3B49; --rule:#2A3F56; --rule-red:#B9534A;
+  --accent:#7DB3EE; --accent-ink:#0B1622; --accent-soft:#1D3248;
+  --good:#62C48E; --good-bg:#16332A; --miss:#F0867C; --miss-bg:#3A1F1D;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:28px 56px;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.top h1{font-family:var(--display);font-weight:700;font-size:44px;line-height:.95;letter-spacing:.01em;text-transform:uppercase}
+.top .sub{color:var(--ink-2);max-width:56ch;margin-top:6px}
+.sync{font-family:var(--mono);font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);display:inline-block}
+.sync.ok i{background:var(--good)} .sync.err i{background:var(--miss)}
+
+.langs{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.chip small{font-family:var(--mono);font-size:11px;opacity:.75;margin-left:6px}
+.langs select{border:1px dashed var(--line);background:transparent;border-radius:999px;padding:6px 12px;color:var(--ink-2);cursor:pointer}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;min-width:0}
+.session{display:flex;flex-direction:column;gap:18px}
+.s-head h2{font-family:var(--display);font-weight:700;font-size:64px;line-height:.9;text-transform:uppercase;letter-spacing:.01em;margin-top:4px}
+.s-head p{color:var(--ink-2);margin-top:8px;max-width:58ch}
+.s-meta{display:flex;flex-wrap:wrap;gap:8px 22px;font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+.s-meta b{font-family:var(--display);font-size:26px;font-weight:600;color:var(--ink);margin-right:5px;font-variant-numeric:tabular-nums}
+.s-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.note{color:var(--ink-3);font-size:13.5px}
+
+.btn{border:1px solid var(--line);background:var(--card);border-radius:5px;padding:10px 16px;cursor:pointer;font-weight:500;line-height:1.2}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn[disabled]{opacity:.55;cursor:default}
+.btn kbd{font-family:var(--mono);font-size:11px;opacity:.7;margin-left:8px;border:1px solid currentColor;border-radius:3px;padding:0 4px}
+.btn.hit{background:var(--good-bg);border-color:var(--good);color:var(--good);font-weight:600}
+.btn.missed{background:var(--miss-bg);border-color:var(--miss);color:var(--miss);font-weight:600}
+
+/* The index card: red header rule, blue ruled lines, like the paper ones */
+.icard{background-color:var(--card);border:1px solid var(--line);border-radius:4px;min-width:0;
+  background-image:linear-gradient(to bottom,transparent 42px,var(--rule-red) 42px,var(--rule-red) 44px,transparent 44px),
+    repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 32px);
+  background-position:0 0,0 44px;background-repeat:no-repeat;box-shadow:0 1px 0 var(--line),0 10px 24px -18px rgba(10,25,40,.45)}
+.icard-top{height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;font-family:var(--mono);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.icard-top span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.icard-top .tag-new{color:var(--accent);font-weight:500}
+.icard-body{padding:32px 20px 32px;display:flex;flex-direction:column;min-height:224px}
+.icard-q{color:var(--ink-2);font-size:17px;line-height:32px}
+.icard-a{font-family:var(--display);font-weight:600;font-size:clamp(30px,6.4vw,46px);line-height:64px;overflow-wrap:anywhere;display:flex;flex-wrap:wrap;align-items:center;column-gap:12px}
+.icard-a.q{color:var(--ink)}
+.icard-r{font-family:var(--mono);font-size:13.5px;color:var(--ink-2);line-height:32px}
+.icard-n{color:var(--ink-2);font-size:14.5px;line-height:32px;max-width:60ch}
+.icard-hidden{font-family:var(--mono);font-size:13px;color:var(--ink-3);line-height:32px}
+.say{border:1px solid var(--line);background:var(--surface);border-radius:999px;font-family:var(--body);font-size:12.5px;font-weight:500;padding:4px 11px;cursor:pointer;color:var(--ink-2)}
+.say:hover{border-color:var(--accent);color:var(--accent)}
+
+.drill-bar{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:12.5px;color:var(--ink-3)}
+.track{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;min-width:40px}
+.track > i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.grades{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grades .btn{padding:14px 12px;font-size:16px}
+.why{border-left:2px solid var(--accent);padding:2px 0 2px 12px;color:var(--ink-2);font-size:14.5px;white-space:pre-wrap}
+.task{font-size:18px;line-height:1.45;max-width:56ch}
+
+.rail{display:flex;flex-direction:column;gap:16px;min-width:0}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.tile b{display:block;font-family:var(--display);font-weight:600;font-size:36px;line-height:1;font-variant-numeric:tabular-nums;margin-top:4px}
+.tile b small{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--ink-3);margin-left:6px}
+.tile.hot b{color:var(--accent)}
+.rail h3,.col h3,.plan h3{font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:10px}
+.boxrow{display:grid;grid-template-columns:118px minmax(0,1fr) 30px;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--ink-2);padding:3px 0}
+.boxrow > span:first-child{white-space:nowrap}
+.boxrow .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.bar{height:10px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.boxrow.locked .bar > i{background:var(--good)}
+.boxrow.idle .bar > i{background:var(--ink-3)}
+.days{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px}
+.day{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.day i{display:block;width:100%;aspect-ratio:1;border-radius:2px;background:var(--line)}
+.day.on i{background:var(--accent)}
+.day.today i{outline:1.5px solid var(--ink);outline-offset:1px}
+.rot{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;counter-reset:rot}
+.rot li{counter-increment:rot;display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:6px 8px;border-radius:4px;color:var(--ink-2)}
+.rot li::before{content:counter(rot);font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.rot li b{font-family:var(--display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;color:var(--ink);margin-right:8px}
+.rot li.next{background:var(--accent-soft)}
+.rot li em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.plan{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px 36px;align-items:start}
+.plan h3{grid-column:1/-1;margin-bottom:0}
+.plan .rules{margin-top:0}
+@media (max-width:860px){.plan{grid-template-columns:minmax(0,1fr)}}
+.decks{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.deck{border:1px solid var(--line);border-radius:5px;padding:12px 14px;background:var(--card);display:flex;flex-direction:column;gap:8px;min-width:0}
+.deck strong{font-weight:600;overflow-wrap:anywhere}
+.deck .meta{font-family:var(--mono);font-size:12px;color:var(--ink-3);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.deck .bar > i.lk{background:var(--good)}
+.stack{display:flex;position:relative}
+.forms{display:flex;flex-direction:column;gap:18px;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+.form{display:flex;flex-direction:column;gap:8px}
+.form label{font-weight:600}
+.form .row{display:flex;flex-wrap:wrap;gap:8px}
+.form input{flex:1 1 160px;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:5px;padding:9px 11px}
+.form .msg{font-size:13.5px;color:var(--ink-2);min-height:1.2em}
+.form .msg.bad{color:var(--miss)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tscroll{overflow-x:auto}
+.rules{margin:14px 0 0;padding-left:18px;color:var(--ink-2);display:flex;flex-direction:column;gap:8px}
+.rules b{color:var(--ink)}
+.src{font-size:12.5px;color:var(--ink-3);margin-top:10px}
+@media (max-width:480px){
+  .wrap{padding-inline:16px}
+  .top h1{font-size:36px}
+  .s-head h2{font-size:52px}
+  .panel{padding:16px}
+  .boxrow{grid-template-columns:112px minmax(0,1fr) 26px;gap:8px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .track > i,.bar > i{transition:width .25s ease}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Language Split</h1>
+      <p class="sub">Four sessions on rotation, about ten minutes each. Miss a day and the rotation waits for you.</p>
+    </div>
+    <div class="sync" id="sync"><i></i><span>Loading</span></div>
+  </header>
+
+  <nav class="langs" id="langs" aria-label="Language"></nav>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel session" id="session" aria-live="polite"></section>
+      <section class="panel">
+        <h3>Decks</h3>
+        <div class="decks" id="decks"></div>
+        <div class="forms">
+          <form class="form" id="f-build" hidden>
+            <label for="deck-topic">Build a deck with Claude</label>
+            <div class="row">
+              <input id="deck-topic" maxlength="120" placeholder="A topic: ordering food, ad metrics, leg day, shipping a pallet">
+              <button class="btn primary" id="deck-go" type="submit">Build 12 cards</button>
+            </div>
+            <div class="msg" id="deck-msg">Uses your Claude usage. Takes up to a minute.</div>
+          </form>
+          <form class="form" id="f-add">
+            <label for="add-t">Add a word you ran into</label>
+            <div class="row">
+              <input id="add-t" maxlength="120" placeholder="The word, as written">
+              <input id="add-en" maxlength="120" placeholder="English">
+              <button class="btn" type="submit">Add</button>
+            </div>
+            <div class="msg" id="add-msg"></div>
+          </form>
+        </div>
+      </section>
+    </div>
+    <aside class="rail">
+      <div class="tiles" id="tiles"></div>
+      <section class="panel" id="boxes"></section>
+      <section class="panel" id="log"></section>
+      <section class="panel" id="rotation"></section>
+    </aside>
+  </div>
+
+  <section class="panel plan">
+    <h3>The plan</h3>
+    <div>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>Language</th><th>Hours</th><th>When</th></tr></thead>
+          <tbody>
+            <tr><td>German</td><td class="num">~900</td><td>Now. Closest of your picks to English.</td></tr>
+            <tr><td>Dutch, Swedish, Norwegian, Danish</td><td class="num">600 to 750</td><td>After German. Half the vocabulary is cousins.</td></tr>
+            <tr><td>Russian, Polish</td><td class="num">~1,100</td><td>Only with a reason to use it.</td></tr>
+            <tr><td>Japanese</td><td class="num">~2,200</td><td>After 300 German words are locked in. Kana first.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="src">Hours are U.S. Foreign Service Institute class-hour estimates for English speakers to reach professional working level. Holding a basic conversation takes a fraction of that.</p>
+    </div>
+    <ol class="rules">
+      <li><b>One session a day.</b> A second one is an extra set, never a makeup.</li>
+      <li><b>Say it out loud.</b> Silent reps do not count.</li>
+      <li><b>Listening goes in dead time.</b> Cardio, driving, meal prep. Cards build vocabulary. Hours of listening build comprehension, and this page cannot do that part for you.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function pad(n){return String(n).padStart(2,'0')}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function today(){return ymd(new Date())}
+function addDays(s,n){var p=s.split('-').map(Number);return ymd(new Date(p[0],p[1]-1,p[2]+n))}
+
+var LANGS={
+  de:{name:'German',tts:'de-DE'}, ja:{name:'Japanese',tts:'ja-JP'},
+  nl:{name:'Dutch',tts:'nl-NL'}, sv:{name:'Swedish',tts:'sv-SE'}, no:{name:'Norwegian',tts:'nb-NO'},
+  da:{name:'Danish',tts:'da-DK'}, ru:{name:'Russian',tts:'ru-RU'}, pl:{name:'Polish',tts:'pl-PL'}
+};
+var BUILTIN=['de','ja'];
+var IV={1:1,2:2,3:4,4:8,5:16};
+var BOXLABEL=['Not started','Box 1 · 1 day','Box 2 · 2 days','Box 3 · 4 days','Box 4 · 8 days','Box 5 · 16 days'];
+var MILESTONES=[25,75,150,300,600,1000];
+var SLOTS=[
+  {key:'load',name:'Load',tag:'New words',desc:'Eight new words go in, then everything due comes back around.'},
+  {key:'reps',name:'Reps',tag:'Review volume',desc:'Everything due, plus four new. This is where words stick.'},
+  {key:'speak',name:'Speak',tag:'Out loud',desc:'You see the {L}. Say it out loud, say what it means, then flip.'},
+  {key:'field',name:'Field',tag:'Real world',desc:'One task away from this page, then a short review.'}
+];
+
+/* Card rows: [English, target, note, reading]. Order is permanent: ids come from position. */
+var CORE=[
+ {id:'de-surv',lang:'de',title:'Survival',cards:[
+  ['hello','Hallo'],['good morning','Guten Morgen'],['thank you','Danke'],['please / you\'re welcome','Bitte','One word does both jobs.'],
+  ['yes / no','Ja / Nein'],['excuse me','Entschuldigung'],['I don\'t understand','Ich verstehe nicht'],
+  ['Do you speak English?','Sprechen Sie Englisch?','Sie is the polite "you".'],['How much does that cost?','Wie viel kostet das?'],
+  ['Where is ...?','Wo ist ...?'],['I would like ...','Ich möchte ...'],['the check, please','Die Rechnung, bitte','Rechnung also means invoice.'],
+  ['What\'s your name?','Wie heißt du?','ß is a sharp s. Sounds like "hice-t".'],['My name is Hunter','Ich heiße Hunter'],
+  ['How\'s it going?','Wie geht\'s?'],['I\'m good','Mir geht\'s gut'],['I\'m learning German','Ich lerne Deutsch'],
+  ['slowly, please','Langsam, bitte'],['see you later','Bis später'],['goodbye','Tschüss','Casual. Formal is Auf Wiedersehen.'],
+  ['today','heute'],['tomorrow','morgen','Capitalized, der Morgen, it means morning.'],['now','jetzt'],['I need ...','Ich brauche ...']
+ ]},
+ {id:'de-verb',lang:'de',title:'Core verbs',cards:[
+  ['to be / I am','sein / ich bin'],['to have / I have','haben / ich habe'],['to go','gehen'],['to come','kommen'],
+  ['to do, to make','machen'],['to want / I want','wollen / ich will','Ich will means I want, not I will.'],
+  ['can / I can','können / ich kann'],['must / I must','müssen / ich muss'],['to eat','essen'],['to drink','trinken'],
+  ['to work','arbeiten'],['to buy','kaufen'],['to sell','verkaufen','kaufen with ver- flips buy into sell.'],
+  ['to speak','sprechen'],['to understand','verstehen'],['to know / I know','wissen / ich weiß'],
+  ['to see','sehen'],['to give','geben'],['to take','nehmen'],['to lift','heben','The root of Hebebühne.']
+ ]},
+ {id:'de-gym',lang:'de',title:'Gym',cards:[
+  ['the gym','das Fitnessstudio'],['the workout','das Training'],['the muscle','der Muskel','Plural: die Muskeln.'],
+  ['the weight','das Gewicht'],['the barbell','die Langhantel','Literally "long dumbbell".'],['the dumbbell','die Kurzhantel','Literally "short dumbbell".'],
+  ['the set','der Satz','Also means sentence.'],['the rep','die Wiederholung','Literally "again-fetching": repetition.'],['the rest between sets','die Pause'],
+  ['heavy','schwer','Also means difficult.'],['light','leicht','Also means easy.'],['strong','stark'],
+  ['the back','der Rücken'],['the chest','die Brust'],['the legs','die Beine','One leg: das Bein.'],['the shoulder','die Schulter'],['the arm','der Arm'],
+  ['the bench press','das Bankdrücken','Bank is bench, drücken is to press.'],['the squat','die Kniebeuge','Literally "knee bend".'],
+  ['the deadlift','das Kreuzheben','Kreuz is the lower back, heben is to lift.'],['the protein','das Eiweiß','Literally "egg white".'],
+  ['the competition','der Wettkampf'],['the stage','die Bühne'],['I train every day','Ich trainiere jeden Tag'],['one more rep','Noch eine Wiederholung']
+ ]},
+ {id:'de-shop',lang:'de',title:'Shop floor',cards:[
+  ['the repair shop','die Werkstatt'],['the car','das Auto'],['the car lift','die Hebebühne','Literally "lifting stage".'],
+  ['the tool','das Werkzeug','Literally "work stuff".'],['the tire','der Reifen'],['the engine','der Motor'],
+  ['the jack','der Wagenheber','Literally "car lifter".'],['the wrench','der Schraubenschlüssel','Literally "screw key".'],['the screw','die Schraube'],
+  ['the garage','die Garage'],['the workbench','die Werkbank'],['the customer','der Kunde'],['the price','der Preis'],
+  ['the delivery','die Lieferung'],['the order','die Bestellung'],['the invoice','die Rechnung'],['the warehouse','das Lager'],
+  ['in stock','auf Lager','Literally "on warehouse".'],['sold out','ausverkauft'],['the quote, the offer','das Angebot'],
+  ['free shipping','kostenloser Versand'],['the load capacity','die Tragfähigkeit','tragen is to carry, Fähigkeit is ability.'],
+  ['the brake','die Bremse'],['to repair','reparieren']
+ ]},
+ {id:'de-num',lang:'de',title:'Numbers',cards:[
+  ['one','eins'],['two','zwei'],['three','drei'],['four','vier'],['five','fünf'],['six','sechs'],['seven','sieben'],
+  ['eight','acht'],['nine','neun'],['ten','zehn'],['twenty','zwanzig'],['one hundred','hundert'],['one thousand','tausend']
+ ]},
+ {id:'de-sent',lang:'de',title:'Sentences',cards:[
+  ['I am tired','Ich bin müde'],['I have a question','Ich habe eine Frage'],['I want to eat','Ich will essen'],
+  ['I can\'t today','Ich kann heute nicht'],['I have to work','Ich muss arbeiten','The second verb goes to the end.'],
+  ['Where is the gym?','Wo ist das Fitnessstudio?'],['That is too expensive','Das ist zu teuer'],['I\'d like a coffee','Ich möchte einen Kaffee'],
+  ['I sell car lifts','Ich verkaufe Hebebühnen'],['I\'m going to the gym','Ich gehe ins Fitnessstudio','ins is short for in das.'],
+  ['What is that?','Was ist das?'],['I don\'t know','Ich weiß nicht'],['Can you help me?','Können Sie mir helfen?'],
+  ['I\'m from the USA','Ich komme aus den USA'],['How do you say that in German?','Wie sagt man das auf Deutsch?'],
+  ['Today I\'m training legs','Heute trainiere ich Beine','The verb is always second, so ich moves after it.'],
+  ['The lift is in stock','Die Hebebühne ist auf Lager'],['I need more protein','Ich brauche mehr Eiweiß']
+ ]},
+ {id:'ja-surv',lang:'ja',title:'Survival',cards:[
+  ['hello','こんにちは','','konnichiwa'],['good morning','おはようございます','','ohayō gozaimasu'],['good evening','こんばんは','','konbanwa'],
+  ['thank you','ありがとうございます','','arigatō gozaimasu'],['excuse me, sorry','すみません','Gets attention and apologizes.','sumimasen'],
+  ['yes','はい','','hai'],['no','いいえ','','iie'],['please (asking for something)','おねがいします','','onegai shimasu'],
+  ['I don\'t understand','わかりません','','wakarimasen'],['Do you speak English?','えいごを はなせますか','ka at the end makes it a question.','eigo o hanasemasu ka'],
+  ['How much is it?','いくらですか','','ikura desu ka'],['Where is ...?','... は どこですか','','... wa doko desu ka'],
+  ['I\'m Hunter','ハンターです','Foreign names go in katakana.','Hantā desu'],['nice to meet you','はじめまして','','hajimemashite'],
+  ['see you','またね','Casual.','mata ne'],['delicious','おいしい','','oishii'],['water','みず','','mizu'],
+  ['this one, please','これを ください','','kore o kudasai'],['the check, please','おかいけい おねがいします','','okaikei onegai shimasu'],
+  ['I\'m studying Japanese','にほんごを べんきょうしています','','nihongo o benkyō shite imasu']
+ ]},
+ {id:'ja-gym',lang:'ja',title:'Gym and shop',cards:[
+  ['muscle','きんにく','','kinniku'],['training','トレーニング','Borrowed from English.','torēningu'],['gym','ジム','','jimu'],
+  ['protein','プロテイン','','purotein'],['heavy','おもい','','omoi'],['strong','つよい','','tsuyoi'],
+  ['car','くるま','','kuruma'],['tool','こうぐ','','kōgu'],['tire','タイヤ','','taiya'],['engine','エンジン','','enjin'],
+  ['price','ねだん','','nedan'],['customer','おきゃくさま','Polite form.','okyakusama'],['one more time','もういっかい','','mō ikkai'],
+  ['bodybuilding','ボディビル','','bodibiru'],['chest','むね','','mune'],['back','せなか','','senaka'],['legs','あし','','ashi'],
+  ['competition','たいかい','','taikai']
+ ]}
+];
+var TASKS={
+ de:['Search "Hebebühne kaufen" and open a German lift listing. Pull three words you don\'t know and add them under Decks.',
+     'Watch one Easy German street interview on YouTube with German subtitles on. Write down two phrases you would actually use.'],
+ ja:['Learn the first ten hiragana: あ い う え お か き く け こ. Write each one five times by hand.',
+     'Learn the next ten hiragana: さ し す せ そ た ち つ て と. Then read your kana cards with the romaji covered.'],
+ '*':['Count every rep of one exercise in {L} today. Out loud.',
+      'Put on 15 minutes of {L} audio during cardio or a drive. Don\'t translate. Count the words you recognize.',
+      'Narrate one workout in {L} as you go: the lift, the sets, the reps. Ugly is fine.',
+      'Write three sentences about your day in {L}. Paste them to Claude and ask for corrections only.',
+      'Switch one phone app to {L} for 24 hours.',
+      'Find a product page in {L} for something you sell. Pull three words you don\'t know and add them under Decks.']
+};
+
+/* ---------- state ---------- */
+var S={}, extra=[], lang=lsGet('ls.lang')||'de', sess=null, db=null, sample=null;
+if(!LANGS[lang]) lang='de';
+var myLangs=[]; try{myLangs=JSON.parse(lsGet('ls.langs')||'[]')||[]}catch(e){}
+function blank(){return {v:1,cards:{},log:{},slot:0,done:0,ft:0,updated:''}}
+function norm(p){var b=blank();if(!p||typeof p!=='object')return b;
+  b.cards=(p.cards&&typeof p.cards==='object')?p.cards:{}; b.log=(p.log&&typeof p.log==='object')?p.log:{};
+  b.slot=(p.slot|0)%4; b.done=p.done|0; b.ft=p.ft|0; b.updated=String(p.updated||''); return b}
+function P(L){L=L||lang;if(!S[L]){var loc=null;try{loc=JSON.parse(lsGet('ls.p.'+L)||'null')}catch(e){}S[L]=norm(loc)}return S[L]}
+function hasData(p){return !!(p&&(p.done||Object.keys(p.cards).length))}
+
+function validDeck(d){return d&&LANGS[d.lang]&&typeof d.title==='string'&&Array.isArray(d.cards)}
+function decksFor(L){
+  var out=[];
+  CORE.forEach(function(d){if(d.lang===L)out.push({id:d.id,title:d.title,core:true,cards:d.cards.map(function(c,i){return {id:d.id+'-'+pad(i),en:c[0],t:c[1],n:c[2]||'',r:c[3]||'',deck:d.title}})})});
+  extra.forEach(function(d){if(d.lang===L)out.push({id:d.id,title:d.title,core:false,cards:d.cards.filter(function(c){return c&&c.en&&c.t}).map(function(c,i){return {id:d.id+'~'+i,en:String(c.en),t:String(c.t),n:String(c.n||''),r:String(c.r||''),deck:d.title}})})});
+  return out;
+}
+function allCards(L){var a=[];decksFor(L).forEach(function(d){a=a.concat(d.cards)});return a}
+function newOrder(L){ /* round robin across decks so shop and gym words show up on day one */
+  var ds=decksFor(L),out=[],i=0,more=true;
+  while(more){more=false;ds.forEach(function(d){if(d.cards[i]){out.push(d.cards[i]);more=true}});i++}
+  return out;
+}
+function langList(){var seen={},out=[];BUILTIN.concat(myLangs,extra.map(function(d){return d.lang}),[lang]).forEach(function(l){if(LANGS[l]&&!seen[l]){seen[l]=1;out.push(l)}});return out}
+
+function stats(L){
+  var p=P(L),cs=allCards(L),t=today(),boxes=[0,0,0,0,0,0],started=0,locked=0,due=0;
+  cs.forEach(function(c){var x=p.cards[c.id];if(!x||!x.b){boxes[0]++;return}started++;boxes[x.b]++;if(x.b>=4)locked++;if(x.d<=t)due++});
+  var d=t;if(!p.log[d])d=addDays(t,-1);var streak=0;while(p.log[d]){streak++;d=addDays(d,-1)}
+  var wk=0;for(var i=0;i<7;i++){var e=p.log[addDays(t,-i)];if(e)wk+=e.min|0}
+  return {total:cs.length,boxes:boxes,started:started,locked:locked,due:due,streak:streak,week:wk};
+}
+function plan(kind){
+  var p=P(),cs=allCards(lang),t=today();
+  function learned(c){var x=p.cards[c.id];return x&&x.b}
+  function test(c){return {id:c.id,mode:'test',rev:false}}
+  var due=cs.filter(function(c){return learned(c)&&p.cards[c.id].d<=t}).sort(function(a,b){return p.cards[a.id].b-p.cards[b.id].b});
+  var news=newOrder(lang).filter(function(c){return !learned(c)});
+  var k=kind,q=[],nn=0,nd=0;
+  if(k==='speak'||k==='extra'){
+    var pool=cs.filter(learned).sort(function(a,b){var x=p.cards[a.id],y=p.cards[b.id];return (x.b-y.b)||(x.d<y.d?-1:x.d>y.d?1:0)}).slice(0,15);
+    if(pool.length<5&&news.length)k='load';
+    else{q=pool.map(function(c){return {id:c.id,mode:'test',rev:kind==='speak'}});nd=q.length}
+  }
+  if(k==='load'||k==='reps'){
+    var nw=news.slice(0,k==='load'?8:4),dq=due.slice(0,k==='load'?25:30).map(test),ch=[];
+    for(var i=0;i<nw.length;i+=4){var g=nw.slice(i,i+4);g.forEach(function(c){ch.push({id:c.id,mode:'intro'})});g.forEach(function(c){ch.push(test(c))})}
+    q=k==='load'?ch.concat(dq):dq.concat(ch);nn=nw.length;nd=dq.length;
+  }
+  if(k==='field'){q=due.slice(0,10).map(test);nd=q.length}
+  var secs=nn*30+nd*10+(k==='field'?300:0);
+  return {kind:k,asked:kind,queue:q,nn:nn,nd:nd,mins:Math.max(1,Math.ceil(secs/60))};
+}
+function taskText(){var p=P(),name=LANGS[lang].name,list=(TASKS[lang]||[]).concat(TASKS['*']);return list[p.ft%list.length].replace(/\{L\}/g,name)}
+
+/* ---------- saving ---------- */
+var dirty={},saving=false,timer=null,unsubP=null;
+function setSync(kind,text){var el=$('sync');el.className='sync'+(kind==='ok'?' ok':kind==='err'?' err':'');el.lastElementChild.textContent=text}
+function touch(now){var p=P();p.updated=new Date().toISOString();lsSet('ls.p.'+lang,JSON.stringify(p));
+  if(!db)return;dirty[lang]=1;clearTimeout(timer);if(now)flush();else{setSync('', 'Saving');timer=setTimeout(flush,1500)}}
+function flush(){
+  if(!db||saving)return;var L=Object.keys(dirty)[0];if(!L)return;
+  saving=true;delete dirty[L];setSync('','Saving');
+  db.doc('progress/'+L).set(clone(S[L])).then(function(){saving=false;setSync('ok','Saved to your account');if(Object.keys(dirty).length)flush()},
+    function(e){saving=false;dirty[L]=1;setSync('err',e&&e.code==='quota_exceeded'?'Storage is full. Progress is on this device only':'Not saved yet. Will retry on your next card')});
+}
+function subscribe(){
+  if(!db)return;if(unsubP){unsubP();unsubP=null}var L=lang;
+  unsubP=db.doc('progress/'+L).onSnapshot(function(snap){
+    if(snap.metadata&&snap.metadata.hasPendingWrites)return;
+    if(!snap.exists){if(hasData(P(L))){dirty[L]=1;flush()}else setSync('ok','Saved to your account');return}
+    if(dirty[L]||saving)return;
+    var r=norm(clone(snap.data())),loc=P(L);
+    if(r.updated>loc.updated){S[L]=r;lsSet('ls.p.'+L,JSON.stringify(r));if(L===lang)refresh()}
+    else if(loc.updated>r.updated){dirty[L]=1;flush();return}
+    setSync('ok','Saved to your account');
+  },function(){setSync('err','Lost the connection. Reload to sync')});
+}
+function saveDeck(id,deck){
+  if(!db){var i=extra.findIndex(function(d){return d.id===id});var row=Object.assign({id:id},deck);if(i<0)extra.push(row);else extra[i]=row;
+    lsSet('ls.decks',JSON.stringify(extra));refresh();return Promise.resolve()}
+  return db.collection('decks').doc(id).set(deck);
+}
+function removeDeck(id){
+  if(!db){extra=extra.filter(function(d){return d.id!==id});lsSet('ls.decks',JSON.stringify(extra));refresh();return}
+  db.collection('decks').doc(id).delete().catch(function(){});
+}
+
+/* ---------- speech ---------- */
+/* Clips say the English cue then the word, so they only play when both sides of the card are showing. */
+var canSpeak=('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window),clips=null,player=null;
+function tts(text){if(!canSpeak)return;try{var u=new SpeechSynthesisUtterance(String(text).replace(/\s*\/\s*/g,', ').replace(/\.\.\./g,' '));
+  u.lang=LANGS[lang].tts;u.rate=.88;window.speechSynthesis.speak(u)}catch(e){}}
+function speak(c,both){
+  try{if(canSpeak)window.speechSynthesis.cancel()}catch(e){}
+  if(player){try{player.pause()}catch(e){}player=null}
+  if(both&&clips&&clips[c.id]){var a=new Audio('audio/'+c.id+'.mp3');player=a;var p=a.play();if(p&&p.catch)p.catch(function(){if(player===a)tts(c.t)});return true}
+  tts(c.t);return false;
+}
+function bothShown(){if(!sess||sess.phase!=='drill')return true;var it=sess.queue[sess.i];return !!(it&&(it.mode==='intro'||sess.flipped))}
+try{fetch('audio/manifest.json').then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&Array.isArray(j.ids)){clips={};j.ids.forEach(function(id){clips[id]=1});if(!sess)renderSession()}}).catch(function(){})}catch(e){}
+
+/* ---------- rendering ---------- */
+function cardById(id){var cs=allCards(lang);for(var i=0;i<cs.length;i++)if(cs[i].id===id)return cs[i];return null}
+function sayBtn(c){return (canSpeak||(clips&&clips[c.id]))?'<button class="say" type="button" data-act="say" data-id="'+esc(c.id)+'">Hear it</button>':''}
+function icard(c,o){
+  var x=P().cards[c.id],box=x&&x.b?'Box '+x.b:'New',showT=o.intro||o.flipped||o.rev,showEn=o.intro||o.flipped||!o.rev;
+  var s='<div class="icard"><div class="icard-top"><span>'+esc(c.deck)+'</span><span class="'+(o.intro?'tag-new':'')+'">'+(o.intro?'New word':box)+'</span></div><div class="icard-body">';
+  if(showEn)s+='<div class="icard-q">'+esc(c.en)+'</div>';
+  if(showT){s+='<div class="icard-a">'+'<span lang="'+esc(lang)+'">'+esc(c.t)+'</span>'+sayBtn(c)+'</div>';if(c.r)s+='<div class="icard-r">'+esc(c.r)+'</div>'}
+  if(!showT)s+='<div class="icard-hidden">Say the '+esc(LANGS[lang].name)+' out loud, then flip.</div>';
+  if(!showEn)s+='<div class="icard-hidden">Say it, then say what it means.</div>';
+  if((o.intro||o.flipped)&&c.n)s+='<div class="icard-n">'+esc(c.n)+'</div>';
+  return s+'</div></div>';
+}
+function renderSession(){
+  var el=$('session'),p=P(),name=LANGS[lang].name,slot=SLOTS[p.slot],s='';
+  if(sess&&sess.phase==='drill'){
+    var it=sess.queue[sess.i],c=cardById(it.id),pct=Math.round(100*sess.i/sess.queue.length);
+    s+='<div class="drill-bar"><span>'+esc(sess.label)+'</span><div class="track"><i style="width:'+pct+'%"></i></div><span>'+(sess.i+1)+' / '+sess.queue.length+'</span></div>';
+    s+=icard(c,{intro:it.mode==='intro',flipped:sess.flipped,rev:it.rev});
+    if(it.mode==='intro')s+='<div class="s-actions"><button class="btn primary" data-act="next">Got it, next <kbd>Space</kbd></button></div>';
+    else if(!sess.flipped)s+='<div class="s-actions"><button class="btn primary" data-act="flip">Flip <kbd>Space</kbd></button></div>';
+    else{
+      s+='<div class="grades"><button class="btn missed" data-act="miss">Missed <kbd>1</kbd></button><button class="btn hit" data-act="hit">Got it <kbd>2</kbd></button></div>';
+      if(sample)s+='<div class="s-actions"><button class="btn ghost small" data-act="why">Break this one down</button></div><div class="why" id="why" hidden></div>';
+    }
+    s+='<div class="s-actions"><button class="btn ghost small" data-act="quit">End early</button><span class="note">Ending early saves your cards but the rotation stays put.</span></div>';
+  }else if(sess&&sess.phase==='task'){
+    s+='<div class="s-head"><span class="eyebrow">Field task</span></div><p class="task">'+esc(sess.task)+'</p>';
+    s+='<div class="s-actions"><button class="btn primary" data-act="taskdone">Did it</button><button class="btn ghost" data-act="taskskip">Not today</button></div>';
+    s+='<p class="note">'+(sess.queue.length?sess.queue.length+' cards due after this.':'No cards due after this.')+'</p>';
+  }else if(sess&&sess.phase==='done'){
+    var st=stats(lang),rate=sess.firsts?Math.round(100*sess.hits/sess.firsts):0;
+    s+='<div class="s-head"><span class="eyebrow">'+(sess.complete?'Session logged':'Ended early')+'</span><h2>'+(sess.complete?'Done':'Saved')+'</h2>';
+    s+='<p>'+(sess.complete?(sess.advance?'Next up: '+esc(SLOTS[p.slot].name)+'. Come back tomorrow.':'Extra set logged. The rotation did not move.'):'Your cards are saved. '+esc(slot.name)+' is still up next.')+'</p></div>';
+    s+='<div class="s-meta"><span><b>'+sess.graded+'</b>cards</span><span><b>'+rate+'%</b>first pass</span><span><b>'+sess.mins+'</b>min</span><span><b>'+st.streak+'</b>day streak</span></div>';
+    s+='<div class="s-actions"><button class="btn primary" data-act="close">Back to the board</button></div>';
+  }else{
+    var total=allCards(lang).length;
+    if(!total){
+      s+='<div class="s-head"><span class="eyebrow">'+esc(name)+'</span><h2>No cards yet</h2><p>There is no built-in '+esc(name)+' deck. '+(sample?'Build a starter deck and the rotation starts from there.':'Add words under Decks and the rotation starts from there.')+'</p></div>';
+      if(sample)s+='<div class="s-actions"><button class="btn primary" data-act="starter">Build a starter deck</button><span class="note" id="starter-msg"></span></div>';
+    }else{
+      var pl=plan(slot.key),logged=!!p.log[today()],fi=pl.queue.filter(function(q){return q.mode==='intro'})[0],first=fi?cardById(fi.id):null;
+      s+='<div class="s-head"><span class="eyebrow">Session '+(p.done+1)+' · '+esc(slot.tag)+'</span><h2>'+esc(slot.name)+'</h2><p>'+esc(slot.desc.replace('{L}',name))+'</p></div>';
+      if(pl.kind!==pl.asked)s+='<p class="note">Not enough learned words to run Speak yet, so this runs as a Load session.</p>';
+      if(!pl.queue.length&&slot.key!=='field'){
+        s+='<p class="note">Nothing is due and every card is started. Build a new deck below, or run an extra set on your weakest words.</p>';
+        s+='<div class="s-actions"><button class="btn primary" data-act="extra">Run an extra set</button></div>';
+      }else{
+        s+='<div class="s-meta"><span><b>'+pl.nn+'</b>new</span><span><b>'+pl.nd+'</b>'+(slot.key==='speak'&&pl.kind==='speak'?'out loud':'due')+'</span><span><b>~'+pl.mins+'</b>min</span></div>';
+        if(logged)s+='<div class="s-actions"><button class="btn primary" data-act="extra">Run an extra set</button><button class="btn ghost" data-act="start">Start '+esc(slot.name)+' anyway</button></div><p class="note">Today is already logged. An extra set drills your weakest words and leaves the rotation alone.</p>';
+        else s+='<div class="s-actions"><button class="btn primary" data-act="start">Start session</button></div>';
+        if(slot.key==='field')s+='<div><span class="eyebrow">The task</span><p class="task" style="margin-top:6px">'+esc(taskText())+'</p></div>';
+        else if(first)s+='<div><span class="eyebrow">First new word</span><div style="margin-top:8px">'+icard(first,{intro:true})+'</div></div>';
+      }
+    }
+  }
+  el.innerHTML=s;
+}
+function renderRail(){
+  var st=stats(lang),p=P(),t=today(),next=MILESTONES.filter(function(m){return m>st.locked})[0]||(st.locked+100);
+  $('tiles').innerHTML=
+    '<div class="tile'+(st.streak?' hot':'')+'"><span class="eyebrow">Streak</span><b>'+st.streak+'<small>'+(st.streak===1?'day':'days')+'</small></b></div>'+
+    '<div class="tile"><span class="eyebrow">Due now</span><b>'+st.due+'<small>cards</small></b></div>'+
+    '<div class="tile"><span class="eyebrow">Locked in</span><b>'+st.locked+'<small>next '+next+'</small></b></div>'+
+    '<div class="tile"><span class="eyebrow">Last 7 days</span><b>'+st.week+'<small>min</small></b></div>';
+  var max=Math.max.apply(null,st.boxes.concat([1])),bx='<h3>The card box</h3>';
+  [1,2,3,4,5,0].forEach(function(i){bx+='<div class="boxrow'+(i>=4?' locked':i===0?' idle':'')+'"><span>'+BOXLABEL[i]+'</span><div class="bar"><i style="width:'+(100*st.boxes[i]/max)+'%"></i></div><span class="n">'+st.boxes[i]+'</span></div>'});
+  bx+='<p class="src">A hit moves a card up a box and pushes its next review out. A miss sends it back to box 1. Boxes 4 and 5 count as locked in.</p>';
+  $('boxes').innerHTML=bx;
+  var dy='<h3>Last 14 days</h3><div class="days">';
+  for(var i=13;i>=0;i--){var d=addDays(t,-i),pp=d.split('-').map(Number),wd='SMTWTFS'[new Date(pp[0],pp[1]-1,pp[2]).getDay()];
+    dy+='<div class="day'+(p.log[d]?' on':'')+(i===0?' today':'')+'" title="'+d+(p.log[d]?': '+(p.log[d].min|0)+' min':'')+'"><i></i>'+wd+'</div>'}
+  $('log').innerHTML=dy+'</div>';
+  var ro='<h3>The rotation</h3><ol class="rot">';
+  SLOTS.forEach(function(sl,i){ro+='<li class="'+(i===p.slot?'next':'')+'"><span><b>'+sl.name+'</b>'+esc(sl.tag)+'</span>'+(i===p.slot?'<em>Up next</em>':'<span></span>')+'</li>'});
+  $('rotation').innerHTML=ro+'</ol>';
+}
+function renderLangs(){
+  var s='',list=langList();
+  list.forEach(function(l){var st=stats(l);s+='<button class="chip" type="button" data-act="lang" data-l="'+l+'" aria-pressed="'+(l===lang)+'">'+LANGS[l].name+'<small>'+st.locked+' locked</small></button>'});
+  var rest=Object.keys(LANGS).filter(function(l){return list.indexOf(l)<0});
+  if(rest.length){s+='<select id="add-lang" aria-label="Add a language"><option value="">Add a language</option>';rest.forEach(function(l){s+='<option value="'+l+'">'+LANGS[l].name+'</option>'});s+='</select>'}
+  $('langs').innerHTML=s;
+}
+function renderDecks(){
+  var p=P(),s='';
+  decksFor(lang).forEach(function(d){
+    var st=0,lk=0;d.cards.forEach(function(c){var x=p.cards[c.id];if(x&&x.b){st++;if(x.b>=4)lk++}});
+    var n=d.cards.length||1;
+    s+='<div class="deck"><strong>'+esc(d.title)+'</strong><div class="bar stack"><i class="lk" style="width:'+(100*lk/n)+'%"></i><i style="width:'+(100*(st-lk)/n)+'%;border-radius:0"></i></div>'+
+       '<div class="meta"><span>'+st+' / '+d.cards.length+' started · '+lk+' locked</span>'+(d.core?'':'<button class="btn ghost small" type="button" data-act="rmdeck" data-id="'+esc(d.id)+'">Remove</button>')+'</div></div>';
+  });
+  if(!s)s='<p class="note">No decks for '+esc(LANGS[lang].name)+' yet.</p>';
+  $('decks').innerHTML=s;
+  $('add-t').placeholder='The '+LANGS[lang].name+' word, as written';
+}
+function refresh(){renderLangs();renderRail();renderDecks();if(!sess)renderSession()}
+function renderAll(){renderLangs();renderRail();renderDecks();renderSession()}
+
+/* ---------- session flow ---------- */
+function begin(kind){
+  var p=P(),pl=plan(kind);
+  sess={phase:'drill',kind:pl.kind,asked:kind,queue:pl.queue,i:0,flipped:false,start:Date.now(),graded:0,hits:0,firsts:0,missed:{},rq:{},advance:kind!=='extra',
+        label:kind==='extra'?'Extra set':SLOTS[p.slot].name,task:null,complete:false,mins:0};
+  if(kind==='field'){sess.phase='task';sess.task=taskText()}
+  else if(!sess.queue.length){sess=null}
+  renderSession();autoSay();
+}
+function autoSay(){if(sess&&sess.phase==='drill'){var it=sess.queue[sess.i];if(it&&it.rev&&it.mode==='test'&&!sess.flipped){var c=cardById(it.id);if(c)speak(c,false)}}}
+function flipSay(){var it=sess.queue[sess.i],c=cardById(it.id);if(!c)return;if(it.rev){if(clips&&clips[c.id])speak(c,true)}else speak(c,true)}
+function step(){sess.i++;sess.flipped=false;if(sess.i>=sess.queue.length)finish(true);else{renderSession();autoSay()}}
+function grade(hit){
+  var it=sess.queue[sess.i],p=P(),c=p.cards[it.id]||{b:0,d:today(),s:0,m:0};
+  c.s=(c.s|0)+1;if(!sess.missed[it.id])sess.firsts++;
+  if(hit){if(sess.missed[it.id]){c.b=1;c.d=addDays(today(),1)}else{c.b=Math.min(5,(c.b|0)+1);c.d=addDays(today(),IV[c.b]);sess.hits++}}
+  else{c.b=1;c.m=(c.m|0)+1;c.d=today();sess.missed[it.id]=1;var r=sess.rq[it.id]|0;if(r<2){sess.rq[it.id]=r+1;sess.queue.push({id:it.id,mode:'test',rev:it.rev})}}
+  p.cards[it.id]=c;sess.graded++;touch(false);renderRail();step();
+}
+function finish(complete){
+  var p=P(),t=today(),mins=Math.min(45,Math.max(1,Math.round((Date.now()-sess.start)/60000)));
+  sess.mins=mins;sess.complete=complete;sess.phase='done';
+  if(sess.graded||complete){var e=p.log[t]||{n:0,min:0};e.n=(e.n|0)+sess.graded;e.min=(e.min|0)+mins;p.log[t]=e}
+  if(complete&&sess.advance){if(sess.asked==='field')p.ft=(p.ft|0)+1;p.slot=(p.slot+1)%4;p.done=(p.done|0)+1}else sess.advance=false;
+  var cut=addDays(t,-400);Object.keys(p.log).forEach(function(k){if(k<cut)delete p.log[k]});
+  touch(true);renderAll();
+}
+
+/* ---------- Claude ---------- */
+var ERR={not_granted:'Claude access was declined for this page.',rate_limited:'Too many requests or you hit your usage limit. Try again later.',session_expired:'Sign in again, then retry.',
+  refused:'Claude declined that topic. Try a different one.',invalid_json:'The deck came back malformed. Try again.',sampling_disabled:'Claude is not available on this account.'};
+function errText(e){return ERR[e&&e.code]||'That did not go through. Try again.'}
+function buildDeck(topic,msgEl,btn){
+  if(!sample)return;var name=LANGS[lang].name,L=lang;
+  var have=allCards(L).map(function(c){return c.t}).slice(0,300).join(' | ');
+  var prompt='You are writing flashcards for an English speaker learning '+name+' from zero.\nTopic: "'+topic.slice(0,120)+'"\n\n'+
+    'Reply with only a JSON object: {"title": string, "cards": array of exactly 12 objects {"en": string, "t": string, "n": string, "r": string}}.\n'+
+    '- title: 2 to 4 English words naming the deck.\n- en: the English word or short phrase.\n- t: the '+name+' translation, as a native speaker would write it. For German nouns include the article (der/die/das). For Japanese use kana, with kanji only when a beginner must know it.\n'+
+    '- n: a literal breakdown or memory hook in under 12 words, or "" if there is nothing useful to say.\n- r: romanization if '+name+' does not use the Latin alphabet, otherwise "".\n'+
+    'Pick practical, high-frequency items a beginner would really use for this topic. Mix single words with a few short phrases.\n'+
+    (have?'Do not repeat these existing cards: '+have+'\n':'')+
+    'Example: {"title":"At the Bakery","cards":[{"en":"the bread","t":"das Brot","n":"plural: die Brote","r":""}]}';
+  btn.disabled=true;msgEl.className='msg';msgEl.textContent='Thinking. This can take up to a minute.';
+  sample.json(prompt,{cache:false}).then(function(o){
+    var cards=(o&&Array.isArray(o.cards)?o.cards:[]).filter(function(c){return c&&typeof c.en==='string'&&typeof c.t==='string'&&c.en.trim()&&c.t.trim()}).slice(0,20)
+      .map(function(c){return {en:c.en.slice(0,140),t:c.t.slice(0,140),n:String(c.n||'').slice(0,200),r:String(c.r||'').slice(0,140)}});
+    if(!cards.length)throw {code:'invalid_json'};
+    var title=String(o.title||topic).slice(0,40);
+    return saveDeck(L+'-'+Date.now().toString(36),{lang:L,title:title,cards:cards,created:new Date().toISOString()}).then(function(){msgEl.textContent='Added "'+title+'" with '+cards.length+' cards. They enter the rotation as new words.'});
+  }).catch(function(e){msgEl.className='msg bad';msgEl.textContent=errText(e)}).then(function(){btn.disabled=false});
+}
+var whyCtl=null;
+function why(){
+  var it=sess&&sess.queue[sess.i],c=it&&cardById(it.id),out=$('why');if(!c||!out||!sample)return;
+  if(whyCtl)whyCtl.abort();whyCtl=new AbortController();var name=LANGS[lang].name;
+  out.hidden=false;out.textContent='Thinking...';
+  sample('A beginner learning '+name+' is studying this flashcard.\nEnglish: '+c.en+'\n'+name+': '+c.t+'\n\nIn at most three short sentences: break the word or phrase into its parts, state any grammar a beginner must know (gender, plural, word order, politeness level), and give one memory hook. Blunt and plain. No preamble, no markdown.',
+    {modelTier:'quick',signal:whyCtl.signal,onText:function(u){out.textContent=u.text}})
+    .then(function(r){out.textContent=r.text},function(e){if(e&&e.code==='cancelled')return;out.textContent=e&&e.text?e.text:errText(e)});
+}
+
+/* ---------- events ---------- */
+var armed=null;
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-act]');if(!b)return;var a=b.getAttribute('data-act');
+  if(a==='lang'){setLang(b.getAttribute('data-l'))}
+  else if(a==='start')begin(SLOTS[P().slot].key);
+  else if(a==='extra')begin('extra');
+  else if(a==='flip'){sess.flipped=true;renderSession();flipSay()}
+  else if(a==='next')step();
+  else if(a==='hit')grade(true);
+  else if(a==='miss')grade(false);
+  else if(a==='quit')finish(false);
+  else if(a==='close'){sess=null;renderAll()}
+  else if(a==='taskdone'){if(sess.queue.length){sess.phase='drill';sess.start=Date.now()-300000;renderSession()}else{sess.start=Date.now()-300000;finish(true)}}
+  else if(a==='taskskip'){sess=null;renderAll()}
+  else if(a==='say'){var c2=cardById(b.getAttribute('data-id'));if(c2)speak(c2,bothShown())}
+  else if(a==='why')why();
+  else if(a==='starter'){buildDeck('survival basics: greetings, yes and no, please and thanks, numbers one to five, asking where and how much',$('starter-msg'),b)}
+  else if(a==='rmdeck'){var id=b.getAttribute('data-id');if(armed===id){armed=null;removeDeck(id)}else{armed=id;b.textContent='Confirm remove'}}
+});
+document.addEventListener('change',function(ev){if(ev.target.id==='add-lang'&&ev.target.value){var l=ev.target.value;if(myLangs.indexOf(l)<0){myLangs.push(l);lsSet('ls.langs',JSON.stringify(myLangs))}setLang(l)}});
+document.addEventListener('keydown',function(ev){
+  if(!sess||sess.phase!=='drill')return;var tg=ev.target.tagName;if(tg==='INPUT'||tg==='SELECT'||tg==='TEXTAREA')return;
+  var it=sess.queue[sess.i],k=ev.key;
+  if(k===' '||k==='Enter'){if(tg==='BUTTON')return;ev.preventDefault();if(it.mode==='intro')step();else if(!sess.flipped){sess.flipped=true;renderSession();flipSay()}}
+  else if(sess.flipped&&it.mode==='test'){if(k==='1')grade(false);else if(k==='2')grade(true)}
+});
+function setLang(l){if(!LANGS[l]||l===lang)return;if(sess&&(sess.phase==='drill')&&sess.graded)finish(false);sess=null;lang=l;lsSet('ls.lang',l);subscribe();renderAll()}
+$('f-build').addEventListener('submit',function(ev){ev.preventDefault();var v=$('deck-topic').value.trim(),m=$('deck-msg');if(!v){m.className='msg bad';m.textContent='Type a topic first.';return}buildDeck(v,m,$('deck-go'))});
+$('f-add').addEventListener('submit',function(ev){
+  ev.preventDefault();var t=$('add-t').value.trim(),en=$('add-en').value.trim(),m=$('add-msg');
+  if(!t||!en){m.className='msg bad';m.textContent='Fill in both the word and the English.';return}
+  var id=lang+'-mine',cur=extra.filter(function(d){return d.id===id})[0],cards=cur?clone(cur.cards):[];
+  cards.push({en:en,t:t,n:'',r:''});
+  saveDeck(id,{lang:lang,title:'My words',cards:cards,created:cur&&cur.created||new Date().toISOString()}).then(function(){$('add-t').value='';$('add-en').value='';m.className='msg';m.textContent='Added. It comes up as a new word in your next Load or Reps session.'},
+    function(){m.className='msg bad';m.textContent='Could not save that word. Try again.'});
+});
+
+/* ---------- boot ---------- */
+try{extra=(JSON.parse(lsGet('ls.decks')||'[]')||[]).filter(validDeck)}catch(e){extra=[]}
+renderAll();
+var cl=window.claude;
+if(cl&&typeof cl.use==='function'){
+  cl.use('sample').then(function(x){sample=x||null;if(sample){$('f-build').hidden=false;if(!sess||sess.phase==='done')renderSession()}});
+  cl.use('db').then(function(x){
+    db=x||null;
+    if(!db){setSync('','Saved on this device');return}
+    subscribe();
+    db.collection('decks').onSnapshot(function(snap){extra=snap.docs.map(function(d){var o=clone(d.data());o.id=d.id;return o}).filter(validDeck);refresh()},function(){});
+  });
+}else setSync('','Saved on this device');
+})();
+</script>
+</body>
+</html>
