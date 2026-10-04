@@ -57,6 +57,7 @@ button,input,select{font:inherit;color:inherit}
 .top .sub{color:var(--ink-2);max-width:56ch;margin-top:6px}
 .sync{font-family:var(--mono);font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:7px;white-space:nowrap}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);display:inline-block}
+.acct{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .sync.ok i{background:var(--good)} .sync.err i{background:var(--miss)}
 
 .langs{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -186,8 +187,21 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:now
       <h1>Language Split</h1>
       <p class="sub">Four sessions on rotation, about ten minutes each. Miss a day and the rotation waits for you.</p>
     </div>
-    <div class="sync" id="sync"><i></i><span>Loading</span></div>
+    <div class="acct">
+      <div class="sync" id="sync"><i></i><span>Loading</span></div>
+      <button class="btn small" id="auth-open" type="button" hidden>Sign in to sync</button>
+    </div>
   </header>
+
+  <form class="form panel" id="f-auth" hidden>
+    <label for="auth-email">Sign in to sync across devices</label>
+    <div class="row">
+      <input id="auth-email" type="email" autocomplete="username" placeholder="Email">
+      <input id="auth-pass" type="password" autocomplete="current-password" placeholder="Password">
+      <button class="btn primary" id="auth-go" type="submit">Sign in</button>
+    </div>
+    <div class="msg" id="auth-msg">Your progress follows you to every device you sign in on.</div>
+  </form>
 
   <nav class="langs" id="langs" aria-label="Language"></nav>
 
@@ -250,6 +264,7 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:now
   </section>
 </div>
 
+<script src="vendor/supabase.js"></script>
 <script>
 (function(){
 'use strict';
@@ -269,6 +284,7 @@ var LANGS={
   da:{name:'Danish',tts:'da-DK'}, ru:{name:'Russian',tts:'ru-RU'}, pl:{name:'Polish',tts:'pl-PL'}
 };
 var BUILTIN=['de','ja'];
+var SB_URL='https://fglbxoafbebsryjeqcbu.supabase.co',SB_KEY='sb_publishable_wV0-rpomHLsm01TVbsD9TQ_r-1LeGte'; /* publishable key: safe to ship, row security does the gatekeeping */
 var IV={1:1,2:2,3:4,4:8,5:16};
 var BOXLABEL=['Not started','Box 1 · 1 day','Box 2 · 2 days','Box 3 · 4 days','Box 4 · 8 days','Box 5 · 16 days'];
 var MILESTONES=[25,75,150,300,600,1000];
@@ -447,7 +463,7 @@ function subscribe(){
 }
 function saveDeck(id,deck){
   if(!db){var i=extra.findIndex(function(d){return d.id===id});var row=Object.assign({id:id},deck);if(i<0)extra.push(row);else extra[i]=row;
-    lsSet('ls.decks',JSON.stringify(extra));refresh();return Promise.resolve()}
+    lsSet('ls.decks',JSON.stringify(extra));lsSet('ls.decks.synced','');refresh();return Promise.resolve()}
   return db.collection('decks').doc(id).set(deck);
 }
 function removeDeck(id){
@@ -671,16 +687,79 @@ $('f-add').addEventListener('submit',function(ev){
 /* ---------- boot ---------- */
 try{extra=(JSON.parse(lsGet('ls.decks')||'[]')||[]).filter(validDeck)}catch(e){extra=[]}
 renderAll();
+var unsubDecks=null,sb=null;
+function attach(d){
+  db=d;var local=extra.slice(),first=true;
+  subscribe();
+  unsubDecks=db.collection('decks').onSnapshot(function(snap){
+    var remote=snap.docs.map(function(x){var o=clone(x.data());o.id=x.id;return o}).filter(validDeck);
+    if(first){first=false;
+      if(!lsGet('ls.decks.synced')){var have={};remote.forEach(function(r){have[r.id]=1});
+        local.forEach(function(l){if(have[l.id])return;remote.push(l);var up=db.collection('decks').doc(l.id).set({lang:l.lang,title:l.title,cards:l.cards,created:l.created||new Date().toISOString()});if(up&&up.catch)up.catch(function(){})})}
+      lsSet('ls.decks.synced','1')}
+    extra=remote;lsSet('ls.decks',JSON.stringify(extra));refresh();
+  },function(){});
+}
+setInterval(function(){if(db&&Object.keys(dirty).length)flush()},30000);
+window.addEventListener('online',function(){flush()});
+
+/* The same doc/collection calls the page already makes, answered by two Postgres tables. */
+function supaDb(client,uid){
+  var subs=[],last=0;
+  function chk(r){if(r&&r.error)throw r.error;return r}
+  function offline(){if(!saving)setSync('','Offline. Saved on this device for now')}
+  function sub(pull,kind){var rec={pull:pull,live:true,kind:kind};subs.push(rec);pull(rec);return function(){rec.live=false;subs=subs.filter(function(x){return x!==rec})}}
+  function pullAll(kind){subs.forEach(function(s){if(!kind||s.kind===kind)s.pull(s)})}
+  function tick(){var n=Date.now();if(n-last<4000)return;last=n;pullAll()}
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)tick()});
+  window.addEventListener('focus',tick);
+  setInterval(function(){if(!document.hidden)tick()},60000);
+  return {
+    doc:function(path){var L=path.split('/')[1];return {
+      set:function(data){return client.from('language_progress').upsert({user_id:uid,lang:L,data:data,updated_at:new Date().toISOString()},{onConflict:'user_id,lang'}).then(chk)},
+      onSnapshot:function(next){return sub(function(rec){
+        client.from('language_progress').select('data').eq('user_id',uid).eq('lang',L).maybeSingle().then(function(r){
+          if(!rec.live)return;if(r.error){offline();return}
+          next({exists:!!r.data,data:function(){return r.data?r.data.data:undefined},metadata:{hasPendingWrites:false}});
+        },offline)},'progress')}
+    }},
+    collection:function(){return {
+      onSnapshot:function(next){return sub(function(rec){
+        client.from('language_decks').select('deck_id,lang,title,cards,created_at').eq('user_id',uid).order('created_at').then(function(r){
+          if(!rec.live||r.error)return;
+          next({docs:(r.data||[]).map(function(d){return {id:d.deck_id,data:function(){return {lang:d.lang,title:d.title,cards:d.cards,created:d.created_at}}}})});
+        },function(){})},'decks')},
+      doc:function(id){return {
+        set:function(deck){return client.from('language_decks').upsert({user_id:uid,deck_id:id,lang:deck.lang,title:String(deck.title).slice(0,80),cards:deck.cards,updated_at:new Date().toISOString()},{onConflict:'user_id,deck_id'}).then(chk).then(function(){pullAll('decks')})},
+        delete:function(){return client.from('language_decks').delete().eq('user_id',uid).eq('deck_id',id).then(chk).then(function(){pullAll('decks')})}
+      }}
+    }}
+  };
+}
+function supaSignedOut(){if(unsubP){unsubP();unsubP=null}if(unsubDecks){unsubDecks();unsubDecks=null}db=null;setSync('','Saved on this device');$('auth-open').hidden=false}
+function supaAttach(user){if(db)return;$('auth-open').hidden=true;$('f-auth').hidden=true;setSync('','Syncing');attach(supaDb(sb,user.id))}
+function supaStart(){
+  try{sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){sb=null}
+  if(!sb){setSync('','Saved on this device');return}
+  sb.auth.getSession().then(function(r){var s=r&&r.data&&r.data.session;if(s&&s.user)supaAttach(s.user);else supaSignedOut()},supaSignedOut);
+  sb.auth.onAuthStateChange(function(ev,s){setTimeout(function(){if(ev==='SIGNED_OUT')supaSignedOut();else if(ev==='SIGNED_IN'&&s&&s.user)supaAttach(s.user)},0)});
+}
+$('auth-open').addEventListener('click',function(){var f=$('f-auth');f.hidden=!f.hidden;if(!f.hidden)$('auth-email').focus()});
+$('f-auth').addEventListener('submit',function(ev){
+  ev.preventDefault();if(!sb)return;var m=$('auth-msg'),b=$('auth-go');b.disabled=true;m.className='msg';m.textContent='Signing in';
+  sb.auth.signInWithPassword({email:$('auth-email').value.trim(),password:$('auth-pass').value}).then(function(r){
+    b.disabled=false;
+    if(r.error){m.className='msg bad';m.textContent='That login was not accepted. Check the email and password.';return}
+    $('auth-pass').value='';m.textContent='';if(r.data&&r.data.user)supaAttach(r.data.user);
+  },function(){b.disabled=false;m.className='msg bad';m.textContent='Could not reach the server. Try again.'});
+});
+
 var cl=window.claude;
 if(cl&&typeof cl.use==='function'){
   cl.use('sample').then(function(x){sample=x||null;if(sample){$('f-build').hidden=false;if(!sess||sess.phase==='done')renderSession()}});
-  cl.use('db').then(function(x){
-    db=x||null;
-    if(!db){setSync('','Saved on this device');return}
-    subscribe();
-    db.collection('decks').onSnapshot(function(snap){extra=snap.docs.map(function(d){var o=clone(d.data());o.id=d.id;return o}).filter(validDeck);refresh()},function(){});
-  });
-}else setSync('','Saved on this device');
+  cl.use('db').then(function(x){if(!x){setSync('','Saved on this device');return}attach(x)});
+}else if(window.supabase&&window.supabase.createClient)supaStart();
+else setSync('','Saved on this device');
 })();
 </script>
 </body>
